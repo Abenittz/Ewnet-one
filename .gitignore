@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.env
+.venv/
+storage/raw/*
+!storage/raw/.gitkeep
+storage/extracted/*
+!storage/extracted/.gitkeep
