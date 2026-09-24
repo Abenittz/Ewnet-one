@@ -2,13 +2,15 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.book import ChapterResponse
+from app.models.book import ReadingDirection
 
 
 class ReaderManifestChapter(BaseModel):
-    chapter_index: int
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    index: int
     title: str
-    content_url: str
     word_count: int
 
 
@@ -19,5 +21,5 @@ class ReaderManifestResponse(BaseModel):
     title: str
     author: str | None
     language_code: str
-    reading_direction: str
+    reading_direction: ReadingDirection
     chapters: list[ReaderManifestChapter] = Field(default_factory=list)

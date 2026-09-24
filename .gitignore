@@ -6,3 +6,5 @@ storage/raw/*
 !storage/raw/.gitkeep
 storage/extracted/*
 !storage/extracted/.gitkeep
+storage/books/*
+!storage/books/.gitkeep

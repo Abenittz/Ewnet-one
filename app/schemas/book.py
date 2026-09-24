@@ -59,3 +59,26 @@ class ChapterResponse(BaseModel):
 
 class BookDetailResponse(BookResponse):
     chapters: list[ChapterResponse] = Field(default_factory=list)
+
+
+class UploadBookResponse(BaseModel):
+    work_id: uuid.UUID
+    book_id: uuid.UUID
+    chapters_created: int
+
+
+class BookCatalogItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    author: str | None
+    cover_image_url: str | None = None
+    language_code: str
+
+
+class PaginatedBookList(BaseModel):
+    items: list[BookCatalogItem]
+    total: int
+    page: int
+    page_size: int
