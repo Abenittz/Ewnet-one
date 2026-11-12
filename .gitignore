@@ -1,6 +1,5 @@
 __pycache__/
 *.py[cod]
-.env
 .venv/
 storage/raw/*
 !storage/raw/.gitkeep
@@ -8,3 +7,5 @@ storage/extracted/*
 !storage/extracted/.gitkeep
 storage/books/*
 !storage/books/.gitkeep
+config.bat
+node_modules

@@ -16,6 +16,31 @@ FastAPI backend for the EWNet e-reader. It ingests DOCX books, splits them into 
 - Docker + Docker Compose **or** [Miniconda](https://docs.conda.io/en/latest/miniconda.html) / Anaconda
 - A PostgreSQL database (local Postgres, or a [Neon](https://neon.tech) project)
 
+## Deploy on Render (or similar)
+
+**Do not use `bash run_app.sh` on Render.** That script is for local conda only. Render has no Miniconda, so it exits with `conda not found`.
+
+Use the production starter instead:
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `backend` (if the repo root is above it) |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `bash start.sh` |
+| Health Check Path | `/health` |
+
+Also set environment variables in the Render dashboard (not via committing `.env`):
+
+- `DATABASE_URL` — Neon or Render Postgres URL (`postgresql://...`; the app converts to asyncpg)
+- `SECRET_KEY`
+- `CORS_ORIGINS` — e.g. `["https://your-frontend.example"]`
+- `HOST=0.0.0.0` (default in `start.sh`)
+- `RUN_MIGRATIONS=1` (default)
+
+Optional Blueprint file: `render.yaml`.
+
+---
+
 ## Run with Docker (recommended)
 
 Make sure **Docker Desktop is running** (WSL needs Desktop’s WSL integration enabled), then from `backend/`:
