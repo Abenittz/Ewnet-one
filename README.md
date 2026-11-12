@@ -114,6 +114,22 @@ alembic upgrade head
 
 ### 5. Start the API
 
+Easiest — from `backend/`:
+
+```bash
+./run_app.sh
+```
+
+Optional flags:
+
+```bash
+./run_app.sh --migrate          # alembic upgrade head, then start
+./run_app.sh --port 8000        # change port
+./run_app.sh --host 0.0.0.0
+```
+
+Or manually:
+
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -214,10 +230,8 @@ Only `.docx` is supported. EPUB and other formats are not implemented yet.
 ## Development checklist
 
 ```bash
-conda activate ewnetapi
 cd backend
-cp .env.example .env          # then set DATABASE_URL
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn main:app --reload
+cp .env.example .env          # first time only — then set DATABASE_URL
+conda activate ewnetapi && pip install -r requirements.txt   # first time / when deps change
+./run_app.sh --migrate
 ```
