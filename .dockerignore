@@ -1,0 +1,41 @@
+# Git / IDE
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+
+# Env and secrets — injected via compose env_file / runtime
+.env
+.env.*
+!.env.example
+
+# Python junk
+__pycache__
+**/__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Local storage / large artefacts (use named volume instead)
+storage/books/**
+storage/raw/**
+storage/extracted/**
+!storage/**/.gitkeep
+
+# Docs / tests not needed in the runtime image
+README.md
+tests
+**/test_*.py
+**/*_test.py
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+run_app.sh
+*.md

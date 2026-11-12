@@ -3,7 +3,7 @@
 # Usage:
 #   ./run_app.sh              # run with reload
 #   ./run_app.sh --migrate    # apply Alembic migrations, then run
-#   ./run_app.sh --host 0.0.0.0 --port 8000
+#   ./run_app.sh --host 127.0.0.1 --port 8000
 
 set -euo pipefail
 
@@ -11,8 +11,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 CONDA_ENV="${CONDA_ENV:-ewnetapi}"
-HOST="${HOST:-0.0.0.0}"
-PORT="${PORT:-8000}"
+HOST="${HOST:-}"
+PORT="${PORT:-}"
 RUN_MIGRATE=0
 
 while [[ $# -gt 0 ]]; do
@@ -70,11 +70,42 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
+# Load HOST and PORT defaults from .env if not specified via CLI flags or env vars
+if [[ -z "$HOST" ]]; then
+  ENV_HOST="$(grep -E '^\s*HOST=' .env | cut -d '=' -f2- | tr -d ' "\r' || true)"
+  HOST="${ENV_HOST:-127.0.0.1}"
+fi
+if [[ -z "$PORT" ]]; then
+  ENV_PORT="$(grep -E '^\s*PORT=' .env | cut -d '=' -f2- | tr -d ' "\r' || true)"
+  PORT="${ENV_PORT:-8000}"
+fi
+
 if [[ "$RUN_MIGRATE" -eq 1 ]]; then
   echo "Running migrations..."
   alembic upgrade head
 fi
 
-echo "Starting EWNet API on http://${HOST}:${PORT}  (env: ${CONDA_ENV})"
-echo "Docs: http://localhost:${PORT}/docs"
+# Detect PC / LAN IP for easy network access if listening on all interfaces
+PC_IP=""
+if [[ "$HOST" == "0.0.0.0" ]]; then
+  if [[ -f /mnt/c/Windows/System32/ipconfig.exe ]]; then
+    PC_IP="$(timeout 2 /mnt/c/Windows/System32/ipconfig.exe < /dev/null 2>/dev/null | grep -i "IPv4" | grep -v "172.1" | awk -F': ' '{print $2}' | tr -d '\r' | head -n1 || true)"
+  fi
+  if [[ -z "$PC_IP" ]]; then
+    PC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+  fi
+fi
+
+echo "====================================================="
+echo " Starting EWNet API (env: ${CONDA_ENV})"
+echo " Listening on:   http://${HOST}:${PORT}"
+echo " Local URL:      http://localhost:${PORT}"
+if [[ -n "$PC_IP" && "$PC_IP" != "127.0.0.1" ]]; then
+echo " PC / LAN URL:   http://${PC_IP}:${PORT}"
+fi
+echo " API Docs:       http://localhost:${PORT}/docs"
+if [[ -n "$PC_IP" && "$PC_IP" != "127.0.0.1" ]]; then
+echo " API Docs (LAN): http://${PC_IP}:${PORT}/docs"
+fi
+echo "====================================================="
 exec uvicorn main:app --reload --host "$HOST" --port "$PORT"

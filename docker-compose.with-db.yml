@@ -1,0 +1,41 @@
+# Local Postgres for Docker / local conda.
+#
+# Full stack (API + DB):
+#   bash run_docker.sh --with-db --build
+#
+# DB only (use with local conda `bash run_app.sh`):
+#   bash run_docker.sh --db-only
+#
+# Note: DATABASE_URL for the API service is overridden to host `db`.
+# For conda on the host, use localhost in .env (see README).
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ewnet-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ewnet}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ewnet_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-ewnet}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  ewnet_pgdata:
+    name: ewnet_pgdata

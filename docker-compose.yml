@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ewnet-api:latest
+    container_name: ewnet-api
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      # Always bind all interfaces inside the container
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      STORAGE_PATH: /app/storage
+      RUN_MIGRATIONS: "${RUN_MIGRATIONS:-1}"
+    volumes:
+      - ewnet_storage:/app/storage
+    # Reach Postgres on the host via host.docker.internal if needed
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  ewnet_storage:
+    name: ewnet_storage

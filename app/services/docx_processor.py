@@ -14,14 +14,14 @@ class ChapterSplitResult(TypedDict):
     word_count: int
 
 
-# Multi-language chapter title markers (Latin, Cyrillic, Arabic, Amharic, CJK, etc.).
 _CHAPTER_TITLE_RE = re.compile(
     r"^\s*(?:"
     r"chapter|chapitre|cap[ií]tulo|kapitel|kapitola|rozdzia[łl]|"
     r"fejezet|b[oö]l[uü]m|poglavlje|глава|раздел|"
-    r"الفصل|باب|ምዕራፍ|章|第\s*[0-9一二三四五六七八九十百千]+"
+    r"الفصل|باب|ምዕራፍ|ክፍል|መቅድም|መግቢያ|章|第\s*[0-9一二三四五六七八九十百千]+"
     r")"
-    r"(?:\s+[\dIVXLCDM]+|\s*[:.\-–—]\s*.+)?\s*$",
+    r"(?:\s+[\dIVXLCDMivxlcdm፩-፼]+)?"
+    r"(?:\s*[:.\-–—፡]\s*.+)?\s*$",
     re.IGNORECASE | re.UNICODE,
 )
 
@@ -35,6 +35,9 @@ class DocxProcessor:
         output_dir: Path,
         *,
         path_prefix: str | None = None,
+        images_dir: Path | None = None,
+        images_url_prefix: str | None = None,
+        cover_image_path: Path | None = None,
     ) -> list[ChapterSplitResult]:
         """
         Convert raw DOCX bytes to HTML, split into chapters, and write each
@@ -53,7 +56,18 @@ class DocxProcessor:
         for stale in output_dir.glob("chapter_*.html"):
             stale.unlink(missing_ok=True)
 
-        html = self._docx_to_html(docx_bytes)
+        if images_dir is not None:
+            images_dir = Path(images_dir)
+            images_dir.mkdir(parents=True, exist_ok=True)
+            for stale in images_dir.glob("img_*.*"):
+                stale.unlink(missing_ok=True)
+
+        html = self._docx_to_html(
+            docx_bytes,
+            images_dir=images_dir,
+            images_url_prefix=images_url_prefix,
+            cover_image_path=cover_image_path,
+        )
         if not html.strip():
             raise ValueError("DOCX conversion produced empty HTML")
 
@@ -82,9 +96,51 @@ class DocxProcessor:
 
         return results
 
-    def _docx_to_html(self, docx_bytes: bytes) -> str:
+    def _docx_to_html(
+        self,
+        docx_bytes: bytes,
+        *,
+        images_dir: Path | None = None,
+        images_url_prefix: str | None = None,
+        cover_image_path: Path | None = None,
+    ) -> str:
+        convert_image = None
+        if images_dir is not None and images_url_prefix is not None:
+            images_dir.mkdir(parents=True, exist_ok=True)
+            image_counter = 0
+
+            def _convert_img(image):
+                nonlocal image_counter
+                image_counter += 1
+                ext = mammoth.images.image_filename_extension(image) or "png"
+                if ext.lower() == "jpeg":
+                    ext = "jpg"
+                filename = f"img_{image_counter:03d}.{ext}"
+                target_path = images_dir / filename
+
+                with image.open() as stream:
+                    data = stream.read()
+                target_path.write_bytes(data)
+
+                if (
+                    image_counter == 1
+                    and cover_image_path is not None
+                    and not cover_image_path.exists()
+                ):
+                    try:
+                        cover_image_path.write_bytes(data)
+                    except Exception:
+                        pass
+
+                return {"src": f"{images_url_prefix.rstrip('/')}/{filename}"}
+
+            convert_image = mammoth.images.img_element(_convert_img)
+
         try:
-            result = mammoth.convert_to_html(io.BytesIO(docx_bytes))
+            kwargs = {}
+            if convert_image is not None:
+                kwargs["convert_image"] = convert_image
+            result = mammoth.convert_to_html(io.BytesIO(docx_bytes), **kwargs)
         except Exception as exc:  # noqa: BLE001 - mammoth raises varied errors
             raise ValueError(f"Invalid or corrupt DOCX file: {exc}") from exc
         return result.value or ""

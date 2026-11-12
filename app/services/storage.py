@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 
 from app.core.config import settings
 
@@ -22,8 +23,21 @@ class StorageService:
     def raw_docx_path(self, work_id: str, language_code: str) -> Path:
         return self.book_language_dir(work_id, language_code) / "raw_file.docx"
 
+    def raw_pdf_path(self, work_id: str, language_code: str) -> Path:
+        return self.book_language_dir(work_id, language_code) / "raw_file.pdf"
+
+    def raw_format_path(self, work_id: str, language_code: str, extension: str) -> Path:
+        ext = extension.lower().lstrip(".")
+        return self.book_language_dir(work_id, language_code) / f"raw_file.{ext}"
+
     def chapters_dir(self, work_id: str, language_code: str) -> Path:
         return self.book_language_dir(work_id, language_code) / "chapters"
+
+    def images_dir(self, work_id: str, language_code: str) -> Path:
+        return self.book_language_dir(work_id, language_code) / "images"
+
+    def cover_image_path(self, work_id: str, language_code: str) -> Path:
+        return self.book_language_dir(work_id, language_code) / "cover.jpg"
 
     def relative_path(self, path: Path) -> str:
         """Return a stable path relative to STORAGE_PATH for DB storage."""
@@ -40,10 +54,22 @@ class StorageService:
         return (self.base_path / path).resolve()
 
     def cover_image_url(self, work_id: str, language_code: str) -> str | None:
-        cover = self.book_language_dir(work_id, language_code) / "cover.jpg"
+        cover = self.cover_image_path(work_id, language_code)
         if cover.is_file():
             return f"/storage/books/{work_id}/{language_code}/cover.jpg"
         return None
+
+    def delete_book_files(self, work_id: str, language_code: str) -> None:
+        """Remove all disk files for a specific language edition of a work."""
+        book_dir = self.book_language_dir(work_id, language_code)
+        if book_dir.exists():
+            shutil.rmtree(book_dir, ignore_errors=True)
+
+    def delete_work_files(self, work_id: str) -> None:
+        """Remove all disk files for all editions of a work."""
+        work_dir = self.books_dir / work_id
+        if work_dir.exists():
+            shutil.rmtree(work_dir, ignore_errors=True)
 
     # Legacy helpers (kept for older call sites / reader paths).
     def raw_book_path(self, book_id: str, extension: str) -> Path:
